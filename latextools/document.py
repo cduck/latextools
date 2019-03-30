@@ -20,12 +20,16 @@ class LatexDocument(LatexFileAbc):
         packages = set(p for content in self.contents
                          for p in content.required_packages())
         packages.update(self.config.packages)
+        packages.update(p for c in self.config.commands
+                          for p in c.required_packages())
         return sorted(packages)
 
     def sorted_commands(self):
         commands = set(c for content in self.contents
                          for c in content.required_commands())
         commands.update(self.config.commands)
+        commands.update(c for p in self.config.packages
+                          for c in p.required_packages())
         return sorted(commands)
 
     def _gen_blocks(self):
@@ -37,11 +41,11 @@ class LatexDocument(LatexFileAbc):
         yield '\n'.join(filter(bool, (p.latex_code_import()
                                       for p in packages)))
 
-        yield '\n'.join(filter(bool, (p.latex_code_setup()
-                                      for p in self.sorted_commands())))
+        yield from filter(bool, (p.latex_code_setup()
+                                 for p in self.sorted_commands()))
 
-        yield '\n'.join(filter(bool, (p.latex_code_setup()
-                                      for p in packages)))
+        yield from filter(bool, (p.latex_code_setup()
+                                 for p in packages))
 
         yield r'\begin{document}'
 
