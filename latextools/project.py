@@ -4,6 +4,7 @@ import subprocess
 import fs.memoryfs
 
 from .pdf import Pdf
+from .file import FileAbc
 
 
 class LatexError(RuntimeError): pass
@@ -14,23 +15,51 @@ class LatexProject:
         if proj_fs is None:
             proj_fs = fs.memoryfs.MemoryFS()
         self.proj_fs = proj_fs
+        self.file_map = {}
 
-    def add_file(self, path, text=None, data=None, file=None, fname=None):
-        if ((text is not None)
+    def add_file(self, path_or_obj, text=None, data=None, file=None,
+                 fname=None):
+        if isinstance(path_or_obj, FileAbc):
+            obj = path_or_obj
+            path = obj.path
+        else:
+            path = path_or_obj
+            obj = None
+        if ((obj is not None)
+                + (text is not None)
                 + (data is not None)
                 + (file is not None)
                 + (fname is not None)) != 1:
             raise TypeError(
                     'Specify exactly one of text, data, file, or fname.')
+        if path in self.file_map:
+            if obj == self.file_map[path]:
+                # obj has already been added
+                return
+            else:
+                raise RuntimeError(f'Two files with the same path: {path}')
         if fname is not None:
             with open(fname, 'r') as f:
                 self.add_file(path, file=f)
         elif file is not None:
+            self.file_map[path] = None
             self.proj_fs.writefile(path, file)
         elif data is not None:
+            self.file_map[path] = None
             self.proj_fs.writebytes(path, data)
-        else:
+        elif text is not None:
+            self.file_map[path] = None
             self.proj_fs.writetext(path, text)
+        else:
+            self.file_map[path] = obj
+            for sub in obj.get_required_files():
+                self.add_file(path, obj=sub)
+            if obj.is_text():
+                with self.proj_fs.open(path, 'w') as f:
+                    obj.write_content(f)
+            else:
+                with self.proj_fs.open(path, 'wb') as f:
+                    obj.write_content(f)
 
     @staticmethod
     def _get_fs(base_dir=None, dst_fs=None):
@@ -77,14 +106,22 @@ class LatexProject:
             fpath = fs.path.join(tmp_dir, fname)
             self.run_pdflatex(fpath, cwd=tmp_dir)
             out_fname = self._get_output_fname(fname, 'pdf')
-            pdf = None
+            data = None
             if tmp_fs.exists(out_fname):
                 if not return_path:
                     data = tmp_fs.readbytes(out_fname)
-                    pdf = Pdf(data=data, **pdf_args)
             else:
                 out_fname = None
-            out_list.append(out_fname if return_path else pdf)
+            if return_path:
+                out_list.append(return_path)
+            else:
+                log_fname = self._get_output_fname(fname, 'log')
+                if tmp_fs.exists(log_fname):
+                    log = tmp_fs.readtext(log_fname)
+                else:
+                    log = None
+                pdf = Pdf(data=data, log=log, **pdf_args)
+                out_list.append(pdf)
         return out_list
 
     def save_pdf(self, fname='main.tex', base_dir=None, dst_fs=None,
