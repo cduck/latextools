@@ -42,7 +42,7 @@ class LatexPackage:
             next(iter(self.required_packages()))
         except StopIteration:
             return 0
-        return 1+max(map(LatexCommand.require_depth, self.required_packages()))
+        return 1+max(map(LatexPackage.require_depth, self.required_packages()))
 
     def _key(self):
         if self.setup_content is None:

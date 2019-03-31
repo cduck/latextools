@@ -113,7 +113,7 @@ class LatexProject:
             else:
                 out_fname = None
             if return_path:
-                out_list.append(return_path)
+                out_list.append(out_fname)
             else:
                 log_fname = self._get_output_fname(fname, 'log')
                 if tmp_fs.exists(log_fname):
@@ -144,13 +144,19 @@ class LatexProject:
         out_fname_list = self.compile_pdf_batch(
                                 fname_list, tmp_dir=tmp_dir,
                                 return_path=True)
-        for fname in out_fname_list:
+        for _, fname in zip(fname_list, out_fname_list):
+            if fname is None:
+                continue
             dst_fs.makedir(fs.path.dirname(fname), recreate=True)
             fs.copy.copy_file(tmp_fs, fname, dst_fs, fname)
+        for in_fname, fname in zip(fname_list, out_fname_list):
+            if fname is None:
+                raise LatexError(
+                    f'Output file not generated from source file {in_fname}')
 
     def run_pdflatex(self, fpath, cwd):
         try:
-            p = subprocess.Popen(['pdflatex', 'main.tex'],
+            p = subprocess.Popen(['pdflatex', fpath],
                                  cwd=cwd,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)

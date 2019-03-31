@@ -1,5 +1,9 @@
 import abc
 
+import fs
+
+from . import document, project
+
 
 INDENT_STEP = ' '*4
 
@@ -28,6 +32,10 @@ class LatexContentAbc(metaclass=abc.ABCMeta):
         for sub in self.list_sub_content():
             yield from sub.required_commands()
 
+    def get_required_files(self):
+        for content in self.list_sub_content():
+            yield from content.get_required_files()
+
     def latex_code_body(self, indent=''):
         out = ''
         if self.comment:
@@ -40,6 +48,33 @@ class LatexContentAbc(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def _latex_code_body(self, indent=''):
         pass
+
+    def as_document(self, path='standalone.tex',
+                    config=document.STANDALONE_CONFIG):
+        return document.LatexDocument(path, config=config, contents=[self])
+
+    def as_project(self, config=document.STANDALONE_CONFIG, proj_fs=None):
+        doc = self.as_document(config=document.STANDALONE_CONFIG)
+        proj = project.LatexProject(proj_fs=proj_fs)
+        proj.add_file(doc)
+        return proj
+
+    def render(self, config=document.STANDALONE_CONFIG, **pdf_args):
+        proj = self.as_project(config=config)
+        return proj.compile_pdf(fname='standalone.tex', **pdf_args)
+
+    def save(self, path=None, base_dir=None, dst_fs=None, tmp_dir=None,
+             config=document.STANDALONE_CONFIG):
+        if (path is not None) + (base_dir is not None) != 1:
+            raise ValueError('Specify either path or base_dir')
+        if path is not None:
+            base_dir = fs.path.dirname(path)
+            fname = fs.path.basename(path)
+        else:
+            fname = 'standalone.tex'
+        proj = self.as_project(config=config)
+        return proj.save_pdf(fname=fname, base_dir=base_dir, dst_fs=dst_fs,
+                             tmp_dir=tmp_dir)
 
 
 class BasicContent(LatexContentAbc):

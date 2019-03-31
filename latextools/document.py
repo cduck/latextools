@@ -1,4 +1,5 @@
 from .file import LatexFileAbc
+from . import project
 
 
 class DocumentConfig:
@@ -8,6 +9,8 @@ class DocumentConfig:
         self.options = list(options)
         self.packages = list(packages)
         self.commands = list(commands)
+
+STANDALONE_CONFIG = DocumentConfig('standalone')
 
 
 class LatexDocument(LatexFileAbc):
@@ -58,3 +61,21 @@ class LatexDocument(LatexFileAbc):
         out = '\n\n'.join(filter(bool, map(str.rstrip, self._gen_blocks())))
         out += '\n'
         return out
+
+    def get_required_files(self):
+        for content in self.contents:
+            yield from content.get_required_files()
+
+    def as_project(self, proj_fs=None):
+        proj = project.LatexProject(proj_fs=proj_fs)
+        proj.add_file(self)
+        return proj
+
+    def render(self, **pdf_args):
+        proj = self.as_project()
+        return proj.compile_pdf(fname=self.path, **pdf_args)
+
+    def save(self, base_dir=None, dst_fs=None, tmp_dir=None):
+        proj = self.as_project()
+        return proj.save_pdf(fname=self.path, base_dir=base_dir, dst_fs=dst_fs,
+                             tmp_dir=tmp_dir)
