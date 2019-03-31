@@ -2,7 +2,7 @@ import abc
 
 import fs
 
-from . import document, project
+from . import str_util, document, project
 
 
 INDENT_STEP = ' '*4
@@ -39,8 +39,7 @@ class LatexContentAbc(metaclass=abc.ABCMeta):
     def latex_code_body(self, indent=''):
         out = ''
         if self.comment:
-            out += '\n'.join(f'{indent}% {line}'
-                             for line in self.comment.split('\n'))
+            out += str_util.prefix_lines(indent+'% ', self.comment)
             out += '\n'
         out += self._latex_code_body(indent=indent)
         return out
@@ -54,7 +53,7 @@ class LatexContentAbc(metaclass=abc.ABCMeta):
         return document.LatexDocument(path, config=config, contents=[self])
 
     def as_project(self, config=document.STANDALONE_CONFIG, proj_fs=None):
-        doc = self.as_document(config=document.STANDALONE_CONFIG)
+        doc = self.as_document(config=config)
         proj = project.LatexProject(proj_fs=proj_fs)
         proj.add_file(doc)
         return proj

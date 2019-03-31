@@ -18,6 +18,7 @@ from .command import (
     CommandBundle,
 )
 from .content import (
+    INDENT_STEP,
     LatexContentAbc,
     BasicContent,
     MultiContent,

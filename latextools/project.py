@@ -43,17 +43,21 @@ class LatexProject:
                 self.add_file(path, file=f)
         elif file is not None:
             self.file_map[path] = None
+            self.proj_fs.makedir(fs.path.dirname(path), recreate=True)
             self.proj_fs.writefile(path, file)
         elif data is not None:
             self.file_map[path] = None
+            self.proj_fs.makedir(fs.path.dirname(path), recreate=True)
             self.proj_fs.writebytes(path, data)
         elif text is not None:
             self.file_map[path] = None
+            self.proj_fs.makedir(fs.path.dirname(path), recreate=True)
             self.proj_fs.writetext(path, text)
         else:
             self.file_map[path] = obj
             for sub in obj.get_required_files():
-                self.add_file(path, obj=sub)
+                self.add_file(sub)
+            self.proj_fs.makedir(fs.path.dirname(path), recreate=True)
             if obj.is_text():
                 with self.proj_fs.open(path, 'w') as f:
                     obj.write_content(f)
