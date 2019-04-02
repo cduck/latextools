@@ -3,7 +3,10 @@ from .. import LatexPackage, LatexCommand, CommandBundle, BasicContent
 
 tikz = LatexPackage('tikz', setup_content=
         '\n'.join(fr'\usetikzlibrary{{{u}}}'
-                  for u in ['patterns', 'arrows', 'external']))
+                  for u in ['patterns',
+                            'arrows',
+                            'external',
+                            'pgfplots.groupplots']))
 pgfplots = LatexPackage('pgfplots', packages=[tikz], setup_content=
         r'\pgfplotsset{{compat=1.14}}')
 siunitx = LatexPackage('siunitx', options=['detect-family'])
