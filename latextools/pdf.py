@@ -21,7 +21,7 @@ class Pdf:
                      + base64.b64encode(self.data)
                     ).decode()
         return (
-f'''<iframe src="{path}"{' frameBorder="0"'*(not self.border)}
+f'''<iframe src="{path}"{' style="border:0"'*(not self.border)}
         width="{self.width}" height="{self.height}">
     No iframe support.
 </iframe>''')
