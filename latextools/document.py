@@ -35,11 +35,7 @@ class LatexDocument(LatexFileAbc):
                           for c in p.required_packages())
         return sorted(commands)
 
-    def _gen_blocks(self):
-        options = self.config.options
-        options_str = '' if not options else f'[{",".join(options)}]'
-        yield f'\documentclass{options_str}{{{self.config.doc_type}}}'
-
+    def _gen_preamble_blocks(self):
         packages = self.sorted_packages()
         yield '\n'.join(filter(bool, (p.latex_code_import()
                                       for p in packages)))
@@ -50,12 +46,24 @@ class LatexDocument(LatexFileAbc):
         yield from filter(bool, (p.latex_code_setup()
                                  for p in packages))
 
+    def _gen_blocks(self):
+        options = self.config.options
+        options_str = '' if not options else f'[{",".join(options)}]'
+        yield f'\documentclass{options_str}{{{self.config.doc_type}}}'
+
+        yield from self._gen_preamble_blocks()
+
         yield r'\begin{document}'
 
         for content in self.contents:
             yield content.latex_code_body(indent='')
 
         yield r'\end{document}'
+
+    def get_preamble(self):
+        out = '\n\n'.join(filter(bool, map(str.rstrip,
+                                           self._gen_preamble_blocks())))
+        return out
 
     def get_content(self):
         out = '\n\n'.join(filter(bool, map(str.rstrip, self._gen_blocks())))
@@ -75,7 +83,7 @@ class LatexDocument(LatexFileAbc):
         proj = self.as_project()
         return proj.compile_pdf(fname=self.path, **pdf_args)
 
-    def save(self, base_dir=None, dst_fs=None, tmp_dir=None):
+    def save_pdf(self, base_dir=None, dst_fs=None, tmp_dir=None):
         proj = self.as_project()
         return proj.save_pdf(fname=self.path, base_dir=base_dir, dst_fs=dst_fs,
                              tmp_dir=tmp_dir)

@@ -2,7 +2,7 @@ import abc
 
 import fs
 
-from . import str_util, document, project
+from . import str_util, document, project, file
 
 
 INDENT_STEP = ' '*4
@@ -53,16 +53,13 @@ class LatexContentAbc(metaclass=abc.ABCMeta):
         return document.LatexDocument(path, config=config, contents=[self])
 
     def as_project(self, config=document.STANDALONE_CONFIG, proj_fs=None):
-        doc = self.as_document(config=config)
-        proj = project.LatexProject(proj_fs=proj_fs)
-        proj.add_file(doc)
-        return proj
+        return self.as_document(config=config).as_project(proj_fs=proj_fs)
 
     def render(self, config=document.STANDALONE_CONFIG, **pdf_args):
         proj = self.as_project(config=config)
         return proj.compile_pdf(fname='standalone.tex', **pdf_args)
 
-    def save(self, path=None, base_dir=None, dst_fs=None, tmp_dir=None,
+    def save_pdf(self, path=None, base_dir=None, dst_fs=None, tmp_dir=None,
              config=document.STANDALONE_CONFIG):
         if (path is not None) + (base_dir is not None) != 1:
             raise ValueError('Specify either path or base_dir')
@@ -74,6 +71,9 @@ class LatexContentAbc(metaclass=abc.ABCMeta):
         proj = self.as_project(config=config)
         return proj.save_pdf(fname=fname, base_dir=base_dir, dst_fs=dst_fs,
                              tmp_dir=tmp_dir)
+
+    def separate_file(self, path):
+        return InputContent(path, self, comment=self.comment)
 
 
 class BasicContent(LatexContentAbc):
@@ -97,3 +97,26 @@ class MultiContent(LatexContentAbc):
     def _latex_code_body(self, indent=''):
         return '\n\n'.join(filter(bool, (c.latex_code_body(indent=indent)
                                          for c in self.contents)))
+
+
+class InputContent(LatexContentAbc):
+    def __init__(self, path, content, comment=None):
+        super().__init__((), (), comment=comment)
+        self.path = path
+        self.file = file.InputFile(path, content)
+
+    def list_sub_content(self):
+        return [self.content]
+
+    def _latex_code_body(self, indent=''):
+        return indent + fr'\input{{{self.path}}}'
+
+    def get_required_files(self):
+        return [self.file]
+
+    def save_tex(self, base_dir=None, dst_fs=None):
+        doc = self.as_document(config=document.DocumentConfig())
+        proj = project.LatexProject()
+        for f in doc.get_required_files():
+            proj.add_file(f)
+        proj.write_src(base_dir=base_dir, dst_fs=dst_fs)

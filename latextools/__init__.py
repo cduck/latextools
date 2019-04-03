@@ -22,6 +22,7 @@ from .content import (
     LatexContentAbc,
     BasicContent,
     MultiContent,
+    InputContent,
 )
 
 from .document import (
