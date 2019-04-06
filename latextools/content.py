@@ -41,7 +41,7 @@ class LatexContentAbc(metaclass=abc.ABCMeta):
         if self.comment:
             out += str_util.prefix_lines(indent+'% ', self.comment)
             out += '\n'
-        out += self._latex_code_body(indent=indent)
+        out += self._latex_code_body(indent=indent).rstrip()
         return out
 
     @abc.abstractmethod
@@ -52,23 +52,28 @@ class LatexContentAbc(metaclass=abc.ABCMeta):
                     config=document.STANDALONE_CONFIG):
         return document.LatexDocument(path, config=config, contents=[self])
 
-    def as_project(self, config=document.STANDALONE_CONFIG, proj_fs=None):
-        return self.as_document(config=config).as_project(proj_fs=proj_fs)
+    def as_project(self, path='standalone.tex',
+                   config=document.STANDALONE_CONFIG, proj_fs=None):
+        return self.as_document(path=path, config=config
+                               ).as_project(proj_fs=proj_fs)
 
     def render(self, config=document.STANDALONE_CONFIG, **pdf_args):
-        proj = self.as_project(config=config)
-        return proj.compile_pdf(fname='standalone.tex', **pdf_args)
+        fname = 'standalone.tex'
+        proj = self.as_project(path=fname, config=config)
+        return proj.compile_pdf(fname=fname, **pdf_args)
 
     def save_pdf(self, path=None, base_dir=None, dst_fs=None, tmp_dir=None,
-             config=document.STANDALONE_CONFIG):
+                 config=document.STANDALONE_CONFIG):
         if (path is not None) + (base_dir is not None) != 1:
             raise ValueError('Specify either path or base_dir')
         if path is not None:
             base_dir = fs.path.dirname(path)
             fname = fs.path.basename(path)
+            if fname.lower().endswith('.pdf'):
+                fname = fname[:-4] + '.tex'
         else:
             fname = 'standalone.tex'
-        proj = self.as_project(config=config)
+        proj = self.as_project(path=fname, config=config)
         return proj.save_pdf(fname=fname, base_dir=base_dir, dst_fs=dst_fs,
                              tmp_dir=tmp_dir)
 
@@ -87,16 +92,28 @@ class BasicContent(LatexContentAbc):
 
 
 class MultiContent(LatexContentAbc):
-    def __init__(self, *contents, comment=None):
+    def __init__(self, *contents, comment=None, between='\n\n', pre=None,
+                 post=None):
         super().__init__((), (), comment=comment)
         self.contents = list(contents)
+        self.between = between
+        self.pre = pre
+        self.post = post
 
     def list_sub_content(self):
         return self.contents
 
     def _latex_code_body(self, indent=''):
-        return '\n\n'.join(filter(bool, (c.latex_code_body(indent=indent)
-                                         for c in self.contents)))
+        out = ''
+        if self.pre is not None:
+            out += self.pre
+            out += '\n'
+        out += self.between.join(filter(bool, (c.latex_code_body(indent=indent)
+                                               for c in self.contents)))
+        if self.post is not None:
+            out += '\n'
+            out += self.post
+        return out
 
 
 class InputContent(LatexContentAbc):
@@ -106,10 +123,10 @@ class InputContent(LatexContentAbc):
         self.file = file.InputFile(path, content)
 
     def list_sub_content(self):
-        return [self.content]
+        return [self.file.content]
 
     def _latex_code_body(self, indent=''):
-        return indent + fr'\input{{{self.path}}}'
+        return indent + fr'\input{{{self.path}}}%'
 
     def get_required_files(self):
         return [self.file]
