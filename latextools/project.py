@@ -160,7 +160,9 @@ class LatexProject:
 
     def run_pdflatex(self, fpath, cwd):
         try:
-            p = subprocess.Popen(['pdflatex', fpath],
+            p = subprocess.Popen(['pdflatex', '-halt-on-error',
+                                  '-file-line-error', '-interaction',
+                                  'nonstopmode', fpath],
                                  cwd=cwd,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
