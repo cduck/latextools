@@ -23,8 +23,8 @@ plot_deps = CommandBundle(
         ])
 
 
-FILE_TEMPLATE = r'''\begin{{tikzpicture}}[baseline]
-\pgfplotsset{{every axis/.append style={{thick}}}}
+FILE_TEMPLATE = r'''\begin{{tikzpicture}}[baseline,scale={scale},trim axis left,trim axis right]
+%\pgfplotsset{{every axis/.append style={{thick}}}}
 \pgfplotsset{{every tick label/.append style={{font=\small}}}}
 \pgfplotsset{{every axis label/.append style={{font=\small}}}}
 
@@ -38,22 +38,20 @@ PLOT_TEMPLATE = r'''\begin{{axis}}[
     title={{{title}}},
     xlabel={{{xlabel}}},
     ylabel={{{ylabel}}},
-    width=\columnwidth + 20pt,
-    height=175pt,
+    width={{{width}}},
+    height={{{height}}},
 %    xmin=0, xmax=0,
 %    ymin=0,
 %    restrict x to domain=0:0,
 %    xtick distance=25,
     ,
-    legend style={{draw=none,
-%                   fill=none,
-                   at={{(0,1)}},
-                   anchor=north west,
-                   font=\small}},
+    legend style={{
+        draw=none,{legend_options}
+%        fill=none,
+        font=\small}},
 %    legend columns=-1,
-    axis line style={{draw=none}},
-    tick style={{draw=none}},
-    clip=false,
+    {legend_horizontal},
+    clip=false,{options}
 ]
 
 {graphs}
@@ -61,11 +59,12 @@ PLOT_TEMPLATE = r'''\begin{{axis}}[
 
 GRAPH_TEMPLATE = r'''\addplot[color={color}] table[x={x_col}, y={y_col}, col sep=comma]
     {{{data_path}}}
-;%node [anchor=north east] {{...}};
-\addlegendentry{{{legend}}};'''
+;%node [anchor=north east] {{...}};{legend_entry}'''
 
 
 def clean_string(s):
+    if s is None:
+        return ''
     allowed_chars = string.ascii_letters + string.digits + '-'
     return ''.join(c for c in s.replace(' ', '-').lower()
                      if c in allowed_chars)
@@ -75,8 +74,9 @@ def escape_latex(s):
 
 
 class PgfplotsFigure(LatexContentAbc):
-    def __init__(self):
+    def __init__(self, scale=1):
         super().__init__([], [plot_deps], 'Pgfplots figure')
+        self.scale = scale
         self.plot_list = []
 
     def append_plot(self, plot):
@@ -91,7 +91,7 @@ class PgfplotsFigure(LatexContentAbc):
         plots_str = '\n\n'.join(p._latex_code_body(
                                     indent=INDENT_STEP, i=i)
                                 for i, p in enumerate(self.plot_list))
-        out = FILE_TEMPLATE.format(plots=plots_str, **self.__dict__)
+        out = FILE_TEMPLATE.format(plots=plots_str, scale=self.scale)
         return str_util.prefix_lines(indent, out)
 
     def list_sub_content(self):
@@ -101,11 +101,23 @@ class PgfplotsFigure(LatexContentAbc):
 class Plot(LatexContentAbc):
     GRAPH_TYPE = None
 
-    def __init__(self, title='', xlabel='', ylabel=''):
+    def __init__(self, title='', xlabel='', ylabel='',
+                 width='\columnwidth', height='0.6\columnwidth',
+                 hide_box=False, hide_x_tick_labels=False,
+                 hide_y_tick_labels=False, legend_pos='top-left',
+                 legend_at=None, legend_horizontal=False):
         super().__init__([], [plot_deps], 'Pgfplots plot')
         self.title = title
         self.xlabel = xlabel
         self.ylabel = ylabel
+        self.width = width
+        self.height = height
+        self.hide_box = hide_box
+        self.hide_x_tick_labels = hide_x_tick_labels
+        self.hide_y_tick_labels = hide_y_tick_labels
+        self.legend_pos = legend_pos
+        self.legend_at = legend_at
+        self.legend_horizontal = legend_horizontal
         self.graph_list = []
         self.data_file = None
 
@@ -158,13 +170,73 @@ class Plot(LatexContentAbc):
                                 indent=INDENT_STEP,
                                 x_col=x_col,
                                 y_col=self._get_y_col(i, g),
+                                legend_horizontal=self.legend_horizontal,
+                                last=i >= len(self.graph_list)-1,
                                 data_path=self.get_data_path())
             graphs_str += '\n\n'
+        option_list = []
+        if self.hide_box:
+            option_list.append(r'axis line style={draw=none}')
+            option_list.append(r'tick style={draw=none}')
+        if self.hide_x_tick_labels:
+            option_list.append(r'xticklabels={}')
+        if self.hide_y_tick_labels:
+            option_list.append(r'yticklabels={}')
+        options_str = ',\n    '.join(option_list)
+        if option_list:
+            options_str = '\n    '+options_str+','
+        legend_option_list = []
+        if self.legend_pos == 'center':
+            at_str = '(0.5,0.5)'
+            anchor = 'center'
+        elif self.legend_pos == 'top-left':
+            at_str = '(0,1)'
+            anchor = 'north west'
+        elif self.legend_pos == 'top':
+            at_str = '(0.5,1)'
+            anchor = 'north'
+        elif self.legend_pos == 'top-right':
+            at_str = '(1,1)'
+            anchor = 'north east'
+        elif self.legend_pos == 'right':
+            at_str = '(1,0.5)'
+            anchor = 'east'
+        elif self.legend_pos == 'bottom-right':
+            at_str = '(1,0)'
+            anchor = 'south east'
+        elif self.legend_pos == 'bottom':
+            at_str = '(0.5,0)'
+            anchor = 'south'
+        elif self.legend_pos == 'bottom-left':
+            at_str = '(0,0)'
+            anchor = 'south west'
+        elif self.legend_pos == 'left':
+            at_str = '(0,0.5)'
+            anchor = 'west'
+        if self.legend_at is not None:
+            if isinstance(self.legend_at, str):
+                at_str = self.legend_at
+            else:
+                at_str = f'({self.legend_at[0]},{self.legend_at[1]})'
+        legend_option_list.append(fr'at={{{at_str}}}')
+        legend_option_list.append(f'anchor={anchor}')
+        legend_options_str = ',\n        '.join(legend_option_list)
+        if legend_option_list:
+            legend_options_str = '\n        '+legend_options_str+','
+        if self.legend_horizontal:
+            legend_horizontal_str = 'legend columns=-1'
+        else:
+            legend_horizontal_str = ''
         out = PLOT_TEMPLATE.format(graphs=graphs_str,
                                    title=escape_latex(self.title),
                                    name=f'plot{i}',
                                    xlabel=escape_latex(self.xlabel),
-                                   ylabel=escape_latex(self.ylabel))
+                                   ylabel=escape_latex(self.ylabel),
+                                   width=self.width,
+                                   height=self.height,
+                                   options=options_str,
+                                   legend_options=legend_options_str,
+                                   legend_horizontal=legend_horizontal_str)
         return str_util.prefix_lines(indent, out)
 
     def get_required_files(self):
@@ -214,9 +286,18 @@ class Graph(LatexContentAbc):
         self.color = color
 
     def _latex_code_body(self, indent='', x_col='x', y_col='y',
+                         legend_horizontal=False, last=False,
                          data_path='data/data.csv'):
+        if self.legend is None:
+            legend_entry = ''
+        else:
+            legend = self.legend
+            if legend_horizontal and not last:
+                legend += '~~~~'
+            legend_entry = ('\n'
+                            fr'\addlegendentry{{{escape_latex(legend)}}};')
         out = GRAPH_TEMPLATE.format(x_col=x_col, y_col=y_col,
-                                    legend=escape_latex(self.legend),
+                                    legend_entry=legend_entry,
                                     color=self.color,
                                     data_path=data_path)
         return str_util.prefix_lines(indent, out)
