@@ -90,13 +90,14 @@ class LatexProject:
         return '.'.join(comps)
 
     def compile_pdf(self, fname='main.tex', tmp_dir=None,
-                    return_path=False, **pdf_args):
+                    return_path=False, options=None, **pdf_args):
         return self.compile_pdf_batch([fname], tmp_dir=tmp_dir,
                                       return_path=return_path,
+                                      options=options,
                                       **pdf_args)[0]
 
     def compile_pdf_batch(self, fname_list, tmp_dir=None,
-                          return_path=False, **pdf_args):
+                          return_path=False, options=None, **pdf_args):
         if tmp_dir is None:
             with tempfile.TemporaryDirectory() as tmp_dir:
                 return self.compile_pdf_batch(
@@ -108,7 +109,10 @@ class LatexProject:
         out_list = []
         for fname in fname_list:
             fpath = fs.path.join(tmp_dir, fname)
-            self.run_pdflatex(fpath, cwd=tmp_dir)
+            if options is None:
+                self.run_pdflatex(fpath, cwd=tmp_dir)
+            else:
+                self.run_pdflatex(fpath, cwd=tmp_dir, options=options)
             out_fname = self._get_output_fname(fname, 'pdf')
             data = None
             if tmp_fs.exists(out_fname):
@@ -158,11 +162,11 @@ class LatexProject:
                 raise LatexError(
                     f'Output file not generated from source file {in_fname}')
 
-    def run_pdflatex(self, fpath, cwd):
+    def run_pdflatex(self, fpath, cwd,
+                     options=('-halt-on-error', '-file-line-error',
+                              '-interaction', 'nonstopmode')):
         try:
-            p = subprocess.Popen(['pdflatex', '-halt-on-error',
-                                  '-file-line-error', '-interaction',
-                                  'nonstopmode', fpath],
+            p = subprocess.Popen(['pdflatex', *options, fpath],
                                  cwd=cwd,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
