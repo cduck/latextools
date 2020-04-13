@@ -29,3 +29,11 @@ from .document import (
     LatexDocument,
     DocumentConfig,
 )
+
+from .convert import (
+    svg_to_pdf,
+    pdf_to_svg,
+    render_latex_in_svg,
+    svg_to_png,
+    text_to_svg,
+)

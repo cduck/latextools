@@ -39,7 +39,7 @@ class LatexProject:
             else:
                 raise RuntimeError(f'Two files with the same path: {path}')
         if fname is not None:
-            with open(fname, 'r') as f:
+            with open(fname, 'rb') as f:
                 self.add_file(path, file=f)
         elif file is not None:
             self.file_map[path] = None
@@ -103,6 +103,7 @@ class LatexProject:
                 return self.compile_pdf_batch(
                                 fname_list, tmp_dir=tmp_dir,
                                 return_path=return_path,
+                                options=options,
                                 **pdf_args)
         tmp_fs = fs.open_fs(tmp_dir, writeable=False)
         self.write_src(tmp_dir)

@@ -11,6 +11,10 @@ class Pdf:
         self.border = border
         self.log = log
 
+    def save(self, fname):
+        with open(fname, 'wb') as f:
+            f.write(self.data)
+
     def _repr_html_(self):
         if self.data is None and self.fname is None:
             return '<span color="red">No PDF.</span>'
