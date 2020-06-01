@@ -51,6 +51,7 @@ pkg.relsize = LatexPackage('relsize')
 pkg.cite = LatexPackage('cite')
 
 pkg.qcircuit = LatexPackage('qcircuit', options=['braket'])
+pkg.svg = LatexPackage('svg')
 
 
 class cmd: pass

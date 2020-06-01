@@ -137,13 +137,23 @@ class Svg:
         with open(fname, 'w') as f:
             f.write(self.content)
 
-    def rasterize(self, to_file=None):
+    def rasterize(self, to_file=None, scale=1):
         '''Requires the drawSvg Python package and cairo.'''
         import drawSvg as draw
-        if to_file:
-            return draw.Raster.fromSvgToFile(self.content, to_file)
+        if scale != 1:
+            return self.as_drawing(scale=scale).rasterize(to_file)
         else:
-            return draw.Raster.fromSvg(self.content)
+            if to_file:
+                return draw.Raster.fromSvgToFile(self.content, to_file)
+            else:
+                return draw.Raster.fromSvg(self.content)
+
+    def as_drawing(self, scale=1):
+        '''Requires the drawSvg Python package and cairo.'''
+        import drawSvg as draw
+        d = draw.Drawing(self.width*scale, self.height*scale)
+        d.draw(self, x=0, y=0, scale=scale)
+        return d
 
     def asDataUri(self, strip_chars=STRIP_CHARS):
         '''Returns a data URI with base64 encoding.'''

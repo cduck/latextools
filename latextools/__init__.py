@@ -37,3 +37,17 @@ from .convert import (
     svg_to_png,
     text_to_svg,
 )
+
+from .common_preamble import (
+    pkg,
+    cmd,
+    Title,
+    Color,
+    set_page_color,
+    basic_config,
+)
+
+from .shortcuts import (
+    render_snippet,
+    render_qcircuit,
+)

@@ -15,6 +15,21 @@ class Pdf:
         with open(fname, 'wb') as f:
             f.write(self.data)
 
+    def rasterize(self, to_file=None, scale=1):
+        return self.as_svg().rasterize(to_file=to_file, scale=scale)
+
+    def as_svg(self):
+        from .convert import pdf_to_svg
+        return pdf_to_svg(self)
+
+    def toDrawables(self, elements, **kwargs):
+        '''Integration with drawSvg.
+
+        Forwards its arguments to `latextools.convert.Svg.toDrawables`.
+        '''
+        svg = self.as_svg()
+        return svg.toDrawables(elements, **kwargs)
+
     def _repr_html_(self):
         if self.data is None and self.fname is None:
             return '<span color="red">No PDF.</span>'
