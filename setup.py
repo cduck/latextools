@@ -15,7 +15,7 @@ setup(
     name = 'latextools',
     packages = find_packages(),
     version = version,
-    description = 'A library of tools for programmatically generating LaTeX code.',
+    description = 'A collection of tools for building, rendering, and converting Latex documents',
     long_description = long_desc,
     long_description_content_type = 'text/markdown',
     author = 'Casey Duckering',
@@ -28,6 +28,8 @@ setup(
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Framework :: IPython',
         'Framework :: Jupyter',
     ],
@@ -37,7 +39,13 @@ setup(
     extras_require = {
         'dev': [
             'twine',
-        ]
+        ],
+        'svg': [
+            'drawSvg',
+        ],
+        'all': [
+            'drawSvg',
+        ],
     },
 )
 
