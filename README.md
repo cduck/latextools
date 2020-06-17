@@ -121,6 +121,33 @@ pdf  # Show preview if this is in a Jupyter notebook
 
 ![Example qcircuit output](https://raw.githubusercontent.com/cduck/latextools/master/examples/qcircuit.png)
 
+### Embed latex in an SVG vector drawing
+
+```python
+import latextools
+import drawSvg as draw  # pip3 install drawSvg
+
+# Render latex
+latex_eq = latextools.render_snippet(
+    r'$\sqrt{X^\dag}$',
+    commands=[latextools.cmd.all_math])
+svg_eq = latex_eq.as_svg()
+
+# Use the rendered latex in a vector drawing
+d = draw.Drawing(100, 100, origin='center', displayInline=False)
+d.append(draw.Circle(0, 0, 49, fill='yellow', stroke='black', stroke_width=2))
+d.draw(svg_eq, x=0, y=0, center=True, scale=2.5)
+
+d.saveSvg('vector.svg')
+d.savePng('vector.png')
+
+# Display in Jupyter notebook
+#d.rasterize()  # Display as PNG
+d  # Display as SVG
+```
+
+![Example qcircuit output](https://raw.githubusercontent.com/cduck/latextools/master/examples/vector.png)
+
 ### Build and render a full Latex project
 
 ```python
