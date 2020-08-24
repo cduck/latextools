@@ -2,7 +2,7 @@ from .. import INDENT_STEP, str_util
 from .scatter_plot import Plot, Graph, clean_string, escape_latex
 
 
-BAR_PLOT_TEMPLATE = r'''\begin{{axis}}[
+BAR_PLOT_TEMPLATE = r'''\begin{{{axis}}}[
     name={name},
     title={{{title}}},
     xlabel={{{xlabel}}},
@@ -26,11 +26,14 @@ BAR_PLOT_TEMPLATE = r'''\begin{{axis}}[
     y axis line style={{draw=none}},
     axis x line*=bottom,
     tick style={{draw=none}},
-    yticklabel={{\pgfmathparse{{\tick*1}}\pgfmathprintnumber{{\pgfmathresult}}{y_tick_suffix}}},
+    {yticklabel},
     clip=false,
     enlarge y limits=0,
     ,
     x tick label style={{{x_tick_label_style}}},
+    grid=none,
+    ymajorgrids={ygrid},
+    {extra_config},
     ,
     % From: https://tex.stackexchange.com/questions/449620/editing-label-on-bar-chart
     nodes near coords always on top/.style={{
@@ -47,10 +50,9 @@ BAR_PLOT_TEMPLATE = r'''\begin{{axis}}[
     }},
     nodes near coords always on top,
 ]
-
 {graphs}
-
-\end{{axis}}'''
+{extra_graphs}%
+\end{{{axis}}}'''
 
 BAR_GRAPH_TEMPLATE = r'''\addplot[
     style={{
@@ -60,6 +62,7 @@ BAR_GRAPH_TEMPLATE = r'''\addplot[
         {pattern},
         mark=none,
         {bar_shift},
+        {extra_config},
     }}]
 coordinates {{
     {data}
@@ -67,17 +70,21 @@ coordinates {{
 
 
 class BarPlot(Plot):
-    def __init__(self, title='', xlabel='', ylabel='',
+    def __init__(self, title='', xlabel='', ylabel='', ymin=None, ymax=None,
                  width='\columnwidth', height='0.6\columnwidth',
                  bar_width='15pt', bar_space='5pt', y_tick_suffix=r'',
-                 rotate_labels=False, x_sort_key=None):
-        super().__init__(title=title, xlabel=xlabel, ylabel=ylabel,
-                         width=width, height=height)
+                 rotate_labels=False, x_sort_key=None, ygrid=False, log=False,
+                 extra_config=r'', extra_graphs=r''):
+        super().__init__(title=title, xlabel=xlabel, ylabel=ylabel, ymin=ymin,
+                         ymax=ymax, width=width, height=height,
+                         extra_config=extra_config, extra_graphs=extra_graphs)
         self.bar_width = bar_width
         self.bar_space = bar_space
         self.y_tick_suffix = y_tick_suffix
         self.rotate_labels = rotate_labels
         self.x_sort_key = x_sort_key
+        self.ygrid = ygrid
+        self.log = log
 
     def bar(self, x_data, y_data, fmt='', **kwargs):
         return super().plot(x_data, y_data, fmt=fmt, **kwargs)
@@ -86,6 +93,7 @@ class BarPlot(Plot):
         return None
 
     def _latex_code_body(self, indent='', i=0):
+        axis = 'semilogyaxis' if self.log else 'axis'
         all_x_data = list(self.graph_list[0].x_data)
         for graph in self.graph_list[1:]:
             for x in graph.x_data:
@@ -97,9 +105,12 @@ class BarPlot(Plot):
                                 map(str, all_x_data)))
         enlargelimits = (1 if len(all_x_data) <= 1
                          else 1/2/(len(all_x_data)-1))
-        ymin = 0
-        ymax = max(max(g.y_data) for g in self.graph_list)
-        ymax *= 1.3
+        ymin = 0 if self.ymin is None else self.ymin
+        if self.ymax is None:
+            ymax = max(max(g.y_data) for g in self.graph_list)
+            ymax *= 1.3
+        else:
+            ymax = self.ymax
         graphs_str = '\n\n'.join(g._latex_code_body(
                                     indent=INDENT_STEP,
                                     last=i >= len(self.graph_list)-1,
@@ -107,10 +118,20 @@ class BarPlot(Plot):
                                     x_sort_key=self.x_sort_key)
                                  for i, g in enumerate(self.graph_list))
         if self.rotate_labels:
-            x_tick_label_style = r'rotate=45, anchor=east'
+            if self.rotate_labels == True:
+                x_tick_label_style = r'rotate=45, anchor=east'
+            else:
+                x_tick_label_style = f'rotate={self.rotate_labels}, anchor=east'
         else:
             x_tick_label_style = ''
-        out = BAR_PLOT_TEMPLATE.format(x_coords=x_coords,
+        if self.y_tick_suffix:
+            yticklabel = (
+                rf'yticklabel={{\pgfmathparse{{\tick*1}}\pgfmathprintnumber{{'
+                rf'\pgfmathresult}}{self.y_tick_suffix}}}')
+        else:
+            yticklabel = ''
+        out = BAR_PLOT_TEMPLATE.format(axis=axis,
+                                       x_coords=x_coords,
                                        enlargelimits=enlargelimits,
                                        ymin=ymin, ymax=ymax,
                                        width=self.width, height=self.height,
@@ -121,8 +142,11 @@ class BarPlot(Plot):
                                        name=f'plot{i}',
                                        xlabel=escape_latex(self.xlabel),
                                        ylabel=escape_latex(self.ylabel),
-                                       y_tick_suffix=self.y_tick_suffix,
-                                       x_tick_label_style=x_tick_label_style)
+                                       yticklabel=yticklabel,
+                                       x_tick_label_style=x_tick_label_style,
+                                       ygrid='true' if self.ygrid else 'false',
+                                       extra_config=self.extra_config,
+                                       extra_graphs=self.extra_graphs)
         return str_util.prefix_lines(indent, out)
 
     def get_required_files(self):
@@ -134,11 +158,12 @@ class BarPlot(Plot):
 
 class BarGraph(Graph):
     def __init__(self, x_data, y_data, fmt='', legend='', color='black',
-                 pattern=None, bar_shift=None, **kwargs):
+                 pattern=None, bar_shift=None, extra_config='', **kwargs):
         super().__init__(x_data, y_data, fmt=fmt, legend=legend, color=color,
                          **kwargs)
         self.pattern = pattern
         self.bar_shift = bar_shift
+        self.extra_config = extra_config
 
     def _latex_code_body(self, indent='', x_col=None, y_col=None,
                          data_path=None, last=False, all_x_data=(),
@@ -171,6 +196,7 @@ class BarGraph(Graph):
                                         color=self.color,
                                         pattern=pattern_str,
                                         bar_shift=bar_shift_str,
+                                        extra_config=self.extra_config,
                                         data=data_str)
         return str_util.prefix_lines(indent, out)
 

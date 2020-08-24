@@ -33,17 +33,16 @@ FILE_TEMPLATE = r'''\begin{{tikzpicture}}[baseline,scale={scale},trim axis left,
 \end{{tikzpicture}}
 '''
 
-PLOT_TEMPLATE = r'''\begin{{axis}}[
+PLOT_TEMPLATE = r'''\begin{{{axis}}}[
     name={name},
     title={{{title}}},
     xlabel={{{xlabel}}},
     ylabel={{{ylabel}}},
     width={{{width}}},
     height={{{height}}},
-%    xmin=0, xmax=0,
-%    ymin=0,
 %    restrict x to domain=0:0,
 %    xtick distance=25,
+    {xyminmax},
     ,
     legend style={{
         draw=none,{legend_options}
@@ -51,11 +50,12 @@ PLOT_TEMPLATE = r'''\begin{{axis}}[
         font=\small}},
 %    legend columns=-1,
     {legend_horizontal},
-    clip=false,{options}
+    clip=false,{options},
+    {extra_config},
 ]
-
 {graphs}
-\end{{axis}}'''
+{extra_graphs}%
+\end{{{axis}}}'''
 
 GRAPH_TEMPLATE = r'''\addplot[color={color}] table[x={x_col}, y={y_col}, col sep=comma]
     {{{data_path}}}
@@ -101,15 +101,21 @@ class PgfplotsFigure(LatexContentAbc):
 class Plot(LatexContentAbc):
     GRAPH_TYPE = None
 
-    def __init__(self, title='', xlabel='', ylabel='',
+    def __init__(self, title='', xlabel='', ylabel='', ymin=None, ymax=None,
+                 xmin=None, xmax=None,
                  width='\columnwidth', height='0.6\columnwidth',
                  hide_box=False, hide_x_tick_labels=False,
                  hide_y_tick_labels=False, legend_pos='top-left',
-                 legend_at=None, legend_horizontal=False):
+                 legend_at=None, legend_horizontal=False, axis='axis',
+                 extra_config=r'', extra_graphs=r''):
         super().__init__([], [plot_deps], 'Pgfplots plot')
         self.title = title
         self.xlabel = xlabel
         self.ylabel = ylabel
+        self.ymin = ymin
+        self.ymax = ymax
+        self.xmin = xmin
+        self.xmax = xmax
         self.width = width
         self.height = height
         self.hide_box = hide_box
@@ -120,6 +126,9 @@ class Plot(LatexContentAbc):
         self.legend_horizontal = legend_horizontal
         self.graph_list = []
         self.data_file = None
+        self.axis = axis
+        self.extra_config = extra_config
+        self.extra_graphs = extra_graphs
 
     def append_graph(self, graph):
         self.graph_list.append(graph)
@@ -141,6 +150,10 @@ class Plot(LatexContentAbc):
 
     def set_ylabel(self, ylabel):
         self.ylabel = ylabel
+
+    def set_ylim(self, ymin=None, ymax=None):
+        self.ymin = ymin
+        self.ymax = ymax
 
     def get_clean_name(self):
         return clean_string(self.title)
@@ -227,16 +240,26 @@ class Plot(LatexContentAbc):
             legend_horizontal_str = 'legend columns=-1'
         else:
             legend_horizontal_str = ''
-        out = PLOT_TEMPLATE.format(graphs=graphs_str,
+        xyminmax = ', '.join((
+            *(f'xmin={self.xmin}',) * (self.xmin is not None),
+            *(f'xmax={self.xmax}',) * (self.xmax is not None),
+            *(f'ymin={self.ymin}',) * (self.ymin is not None),
+            *(f'ymax={self.ymax}',) * (self.ymax is not None),
+        ))
+        out = PLOT_TEMPLATE.format(axis=self.axis,
+                                   graphs=graphs_str,
                                    title=escape_latex(self.title),
                                    name=f'plot{i}',
                                    xlabel=escape_latex(self.xlabel),
                                    ylabel=escape_latex(self.ylabel),
+                                   xyminmax=xyminmax,
                                    width=self.width,
                                    height=self.height,
                                    options=options_str,
                                    legend_options=legend_options_str,
-                                   legend_horizontal=legend_horizontal_str)
+                                   legend_horizontal=legend_horizontal_str,
+                                   extra_config=self.extra_config,
+                                   extra_graphs=self.extra_graphs)
         return str_util.prefix_lines(indent, out)
 
     def get_required_files(self):
