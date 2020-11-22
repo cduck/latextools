@@ -57,7 +57,8 @@ PLOT_TEMPLATE = r'''\begin{{{axis}}}[
 {extra_graphs}%
 \end{{{axis}}}'''
 
-GRAPH_TEMPLATE = r'''\addplot[color={color}] table[x={x_col}, y={y_col}, col sep=comma]
+GRAPH_TEMPLATE = r'''\addplot[color={color}, {error_bar_config}]
+    table[x={x_col}, y={y_col}{extra_table_opt}, col sep=comma]
     {{{data_path}}}
 ;%node [anchor=north east] {{...}};{legend_entry}'''
 
@@ -102,7 +103,7 @@ class Plot(LatexContentAbc):
     GRAPH_TYPE = None
 
     def __init__(self, title='', xlabel='', ylabel='', ymin=None, ymax=None,
-                 xmin=None, xmax=None,
+                 xmin=None, xmax=None, fname_prefix='',
                  width='\columnwidth', height='0.6\columnwidth',
                  hide_box=False, hide_x_tick_labels=False,
                  hide_y_tick_labels=False, legend_pos='top-left',
@@ -112,6 +113,7 @@ class Plot(LatexContentAbc):
         self.title = title
         self.xlabel = xlabel
         self.ylabel = ylabel
+        self.fname_prefix = fname_prefix
         self.ymin = ymin
         self.ymax = ymax
         self.xmin = xmin
@@ -133,8 +135,10 @@ class Plot(LatexContentAbc):
     def append_graph(self, graph):
         self.graph_list.append(graph)
 
-    def plot(self, x_data, y_data, fmt='', **kwargs):
-        graph = self.GRAPH_TYPE(x_data, y_data, fmt=fmt, **kwargs)
+    def plot(self, x_data, y_data, fmt='', x_error=None, y_error=None,
+             **kwargs):
+        graph = self.GRAPH_TYPE(x_data, y_data, fmt=fmt, x_error=x_error,
+                                y_error=y_error, **kwargs)
         self.append_graph(graph)
         return graph
 
@@ -156,7 +160,7 @@ class Plot(LatexContentAbc):
         self.ymax = ymax
 
     def get_clean_name(self):
-        return clean_string(self.title)
+        return self.fname_prefix + clean_string(self.title)
 
     def get_data_path(self):
         name = self.get_clean_name()
@@ -167,6 +171,14 @@ class Plot(LatexContentAbc):
 
     def _get_y_col(self, i, g):
         return (f'{clean_string(g.legend)} {clean_string(self.ylabel)} {i}'
+                .strip())
+
+    def _get_x_err_col(self, i, g):
+        return (f'{clean_string(g.legend)} {clean_string(self.xlabel)} {i}-err'
+                .strip())
+
+    def _get_y_err_col(self, i, g):
+        return (f'{clean_string(g.legend)} {clean_string(self.ylabel)} {i}-err'
                 .strip())
 
     def _is_x_common(self):
@@ -183,6 +195,8 @@ class Plot(LatexContentAbc):
                                 indent=INDENT_STEP,
                                 x_col=x_col,
                                 y_col=self._get_y_col(i, g),
+                                x_err_col=self._get_x_err_col(i, g),
+                                y_err_col=self._get_y_err_col(i, g),
                                 legend_horizontal=self.legend_horizontal,
                                 last=i >= len(self.graph_list)-1,
                                 data_path=self.get_data_path())
@@ -285,8 +299,14 @@ class Plot(LatexContentAbc):
             if not is_x_common:
                 column_names.append(self._get_x_col(i, g))
                 columns.append(g.x_data)
+            if g.x_error is not None:
+                column_names.append(self._get_x_err_col(i, g))
+                columns.append(g.x_error)
             column_names.append(self._get_y_col(i, g))
             columns.append(g.y_data)
+            if g.y_error is not None:
+                column_names.append(self._get_y_err_col(i, g))
+                columns.append(g.y_error)
 
         out = ''
         out += ','.join(column_names)
@@ -299,16 +319,19 @@ class Plot(LatexContentAbc):
 
 
 class Graph(LatexContentAbc):
-    def __init__(self, x_data, y_data, fmt='', legend='', color='black',
-                 **kwargs):
+    def __init__(self, x_data, y_data, fmt='', x_error=None, y_error=None,
+                 legend='', color='black', **kwargs):
         super().__init__([], [plot_deps], 'Pgfplots graph')
         self.x_data = x_data
         self.y_data = y_data
+        self.x_error = x_error
+        self.y_error = y_error
         self.fmt = fmt
         self.legend = legend
         self.color = color
 
     def _latex_code_body(self, indent='', x_col='x', y_col='y',
+                         x_err_col='x-err', y_err_col='y-err',
                          legend_horizontal=False, last=False,
                          data_path='data/data.csv'):
         if self.legend is None:
@@ -319,9 +342,21 @@ class Graph(LatexContentAbc):
                 legend += '~~~~'
             legend_entry = ('\n'
                             fr'\addlegendentry{{{escape_latex(legend)}}};')
+        error_bar_config = ''
+        extra_table_opt = ''
+        if self.x_error is not None or self.y_error is not None:
+            error_bar_config += 'error bars/.cd'
+            if self.x_error is not None:
+                error_bar_config += ',x dir=both,x explicit'
+                extra_table_opt += f', x error={x_err_col}'
+            if self.y_error is not None:
+                error_bar_config += ',y dir=both,y explicit'
+                extra_table_opt += f', y error={y_err_col}'
         out = GRAPH_TEMPLATE.format(x_col=x_col, y_col=y_col,
                                     legend_entry=legend_entry,
                                     color=self.color,
+                                    extra_table_opt=extra_table_opt,
+                                    error_bar_config=error_bar_config,
                                     data_path=data_path)
         return str_util.prefix_lines(indent, out)
 

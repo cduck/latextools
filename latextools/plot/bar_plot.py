@@ -63,7 +63,8 @@ BAR_GRAPH_TEMPLATE = r'''\addplot[
         mark=none,
         {bar_shift},
         {extra_config},
-    }}]
+    }},
+    {error_bar_config}]
 coordinates {{
     {data}
 }};{legend}'''
@@ -157,19 +158,26 @@ class BarPlot(Plot):
 
 
 class BarGraph(Graph):
-    def __init__(self, x_data, y_data, fmt='', legend='', color='black',
+    def __init__(self, x_data, y_data, fmt='', x_error=None, y_error=None,
+                 legend='', color='black',
                  pattern=None, bar_shift=None, extra_config='', **kwargs):
-        super().__init__(x_data, y_data, fmt=fmt, legend=legend, color=color,
+        super().__init__(x_data, y_data, fmt=fmt, x_error=x_error,
+                         y_error=y_error, legend=legend, color=color,
                          **kwargs)
         self.pattern = pattern
         self.bar_shift = bar_shift
         self.extra_config = extra_config
 
     def _latex_code_body(self, indent='', x_col=None, y_col=None,
+                         x_err_col=None, y_err_col=None,
                          data_path=None, last=False, all_x_data=(),
                          x_sort_key=None):
         x_data = list(self.x_data)
         y_data = list(self.y_data)
+        x_error = ([0]*len(x_data) if self.x_error is None
+                                   else list(self.x_error))
+        y_error = ([0]*len(y_data) if self.y_error is None
+                                   else list(self.y_error))
         for x in all_x_data:
             if x not in x_data:
                 x_data.append(x)
@@ -190,13 +198,23 @@ class BarGraph(Graph):
             pattern_str = 'pattern='+self.pattern
         else:
             pattern_str = ''
-        data_str = '\n    '.join(f'({escape_latex(str(x))}, {y})'
-                                 for x, y in zip(x_data, y_data))
+        error_bar_config = ''
+        if self.x_error is not None or self.y_error is not None:
+            error_bar_config += 'error bars/.cd'
+            if self.x_error is not None:
+                error_bar_config += ',x dir=both,x explicit'
+            if self.y_error is not None:
+                error_bar_config += ',y dir=both,y explicit'
+        data_str = '\n    '.join(
+                f'({escape_latex(str(x))}, {y})'
+                + (f' +- ({xe}, {ye})' if error_bar_config else '')
+                for x, y, xe, ye in zip(x_data, y_data, x_error, y_error))
         out = BAR_GRAPH_TEMPLATE.format(legend=legend_str,
                                         color=self.color,
                                         pattern=pattern_str,
                                         bar_shift=bar_shift_str,
                                         extra_config=self.extra_config,
+                                        error_bar_config=error_bar_config,
                                         data=data_str)
         return str_util.prefix_lines(indent, out)
 
