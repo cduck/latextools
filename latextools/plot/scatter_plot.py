@@ -320,7 +320,8 @@ class Plot(LatexContentAbc):
 
 class Graph(LatexContentAbc):
     def __init__(self, x_data, y_data, fmt='', x_error=None, y_error=None,
-                 legend='', color='black', **kwargs):
+                 legend='', color='black', extra_error_bar_options='',
+                 **kwargs):
         super().__init__([], [plot_deps], 'Pgfplots graph')
         self.x_data = x_data
         self.y_data = y_data
@@ -329,6 +330,7 @@ class Graph(LatexContentAbc):
         self.fmt = fmt
         self.legend = legend
         self.color = color
+        self.extra_error_bar_options = extra_error_bar_options
 
     def _latex_code_body(self, indent='', x_col='x', y_col='y',
                          x_err_col='x-err', y_err_col='y-err',
@@ -352,6 +354,8 @@ class Graph(LatexContentAbc):
             if self.y_error is not None:
                 error_bar_config += ',y dir=both,y explicit'
                 extra_table_opt += f', y error={y_err_col}'
+            if self.extra_error_bar_options:
+                error_bar_config += f', {self.extra_error_bar_options}'
         out = GRAPH_TEMPLATE.format(x_col=x_col, y_col=y_col,
                                     legend_entry=legend_entry,
                                     color=self.color,
