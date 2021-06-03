@@ -273,7 +273,7 @@ def pdf_to_svg(fname_or_obj=None, text=None, data=None, file=None,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         except FileNotFoundError:
-            raise LatexError('inkscape command not found.')
+            raise LatexError('pdf2svg command not found.')
         stdout, stderr = p.communicate()
         if p.returncode != 0:
             # pdf2svg had an error
