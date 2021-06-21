@@ -52,7 +52,7 @@ def render_qcircuit(content=r'& \gate{X} & \qw', *packages, r=0.5, c=0.7,
         r = '{}em'.format(r)
     if not isinstance(c, str):
         c = '{}em'.format(c)
-    q_conf = '@R={} @C{}'.format(r, c)
+    q_conf = '@R={} @C={}'.format(r, c)
     if const_row:
         q_conf += ' @!R'
     if const_col:
