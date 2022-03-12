@@ -146,7 +146,31 @@ d.savePng('vector.png')
 d  # Display as SVG
 ```
 
-![Example qcircuit output](https://raw.githubusercontent.com/cduck/latextools/master/examples/vector.png)
+![Example SVG output](https://raw.githubusercontent.com/cduck/latextools/master/examples/vector.png)
+
+### Render an SVG that contains text with LaTeX equations and macros
+
+```python
+import latextools
+import drawSvg as draw  # pip3 install drawSvg
+
+# Create an SVG drawing with latex-formatted text
+d = draw.Drawing(100, 100, origin='center', displayInline=False)
+d.append(draw.Circle(0, 0, 49, fill='yellow', stroke='black', stroke_width=2))
+d.append(draw.Text(r'\Huge$\sqrt{X^\dag}$', 30, 0, -14, center=True))
+
+# Render entire drawing as latex
+pdf = latextools.render_svg(d)
+
+pdf.save('vector2.pdf')
+pdf.rasterize('vector2.png', scale=2)
+
+# Display in Jupyter notebook
+#pdf.rasterize(scale=2)  # Display as PNG
+pdf  # Display as PDF
+```
+
+![Example PDF output](https://raw.githubusercontent.com/cduck/latextools/master/examples/vector2.png)
 
 ### Build and render a full Latex project
 

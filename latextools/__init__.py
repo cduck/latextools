@@ -50,4 +50,5 @@ from .common_preamble import (
 from .shortcuts import (
     render_snippet,
     render_qcircuit,
+    render_svg,
 )
