@@ -75,7 +75,7 @@ _SAMPLE_SVG = r'''<svg width="50" height="50" viewBox="0 -50 50 50">
 </svg>'''
 def render_svg(text_fname_or_drawing=_SAMPLE_SVG, *packages, commands=(),
                config=STANDALONE_CONFIG, width=None, inkscape='inkscape',
-               inkscape_args=('-z', '-C', '--export-latex')):
+               inkscape_args=('-C', '--export-latex')):
     r'''Easy way to render an SVG with the LaTeX svg package.
 
     All text in the SVG will be rendered by LaTeX, including math and macros.
@@ -133,7 +133,7 @@ def render_svg(text_fname_or_drawing=_SAMPLE_SVG, *packages, commands=(),
 def render_svg_intermediate(text_fname_or_drawing=_SAMPLE_SVG,
                             svg_fname=None,
                             inkscape='inkscape',
-                            inkscape_args=('-z', '-C', '--export-latex')):
+                            inkscape_args=('-C', '--export-latex')):
     text, fname = None, None
     if hasattr(text_fname_or_drawing, 'asSvg'):
         text = text_fname_or_drawing.asSvg()
@@ -153,10 +153,12 @@ def render_svg_intermediate(text_fname_or_drawing=_SAMPLE_SVG,
         svg_fname = fname
     render_path = os.path.join(out_dir, f'{out_base.replace(".", "_")}-tex.pdf')
     ret = subprocess.call([
-            inkscape, *inkscape_args, f'--export-file={render_path}',
+            inkscape, *inkscape_args, f'--export-filename={render_path}',
             svg_fname])
     if ret != 0:
-        raise RuntimeError('Inkscape failed to convert svg to PDF+LaTeX')
+        raise RuntimeError(f'Inkscape failed to convert svg to PDF+LaTeX.  '
+                f'Inkscape version 1.1 must be installed and the `{inkscape}` '
+                f'command line tool must executable')
     if '--export-latex' in inkscape_args:
         return render_path, f'{render_path}_tex'
     else:
