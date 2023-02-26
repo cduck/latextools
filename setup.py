@@ -27,9 +27,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
         'Framework :: IPython',
         'Framework :: Jupyter',
     ],
@@ -41,10 +38,10 @@ setup(
             'twine',
         ],
         'svg': [
-            'drawSvg',
+            'drawsvg[raster]~=2.0',
         ],
         'all': [
-            'drawSvg',
+            'drawsvg[raster]~=2.0',
         ],
     },
 )

@@ -18,7 +18,7 @@ def render_snippet(content=r'$Z\cdot Y=X$', *packages, commands=(),
     Use `latextools.pkg` and `.cmd` for quick package and command definitions.
 
     Returns a Pdf object.  Save with `obj.save('file.pdf')`.  Add to drawing
-    with `d.draw(obj)` (using drawSvg).
+    with `d.draw(obj)` (using drawsvg).
     '''
     if pad is not None:
         lpad, bpad, rpad, tpad = (pad,) * 4
@@ -51,7 +51,7 @@ def render_qcircuit(content=r'& \gate{X} & \qw', *packages, r=0.5, c=0.7,
     Use `latextools.pkg` and `.cmd` for quick package and command definitions.
 
     Returns a Pdf object.  Save with `obj.save('file.pdf')`.  Add to drawing
-    with `d.draw(obj)` (using drawSvg).
+    with `d.draw(obj)` (using drawsvg).
     '''
     if not isinstance(r, str):
         r = '{}em'.format(r)
@@ -82,7 +82,7 @@ def render_svg(text_fname_or_drawing=_SAMPLE_SVG, *packages, commands=(),
     Use `latextools.pkg` and `.cmd` for quick package and command definitions.
 
     Returns a Pdf object.  Save with `obj.save('file.pdf')`.  Add to drawing
-    with `d.draw(obj)` (using drawSvg).
+    with `d.draw(obj)` (using drawsvg).
 
     This function renders equivalent to the following in a LaTeX project:
 
@@ -93,9 +93,7 @@ def render_svg(text_fname_or_drawing=_SAMPLE_SVG, *packages, commands=(),
         % Or \includesvg[width=\columnwidth]{image.svg}
     '''
     text, fname = None, None
-    if hasattr(text_fname_or_drawing, 'asSvg'):
-        text = text_fname_or_drawing.asSvg()
-    elif hasattr(text_fname_or_drawing, 'as_svg'):
+    if hasattr(text_fname_or_drawing, 'as_svg'):
         text = text_fname_or_drawing.as_svg()
     elif os.path.exists(text_fname_or_drawing):
         fname = text_fname_or_drawing
@@ -135,9 +133,7 @@ def render_svg_intermediate(text_fname_or_drawing=_SAMPLE_SVG,
                             inkscape='inkscape',
                             inkscape_args=('-C', '--export-latex')):
     text, fname = None, None
-    if hasattr(text_fname_or_drawing, 'asSvg'):
-        text = text_fname_or_drawing.asSvg()
-    elif hasattr(text_fname_or_drawing, 'as_svg'):
+    if hasattr(text_fname_or_drawing, 'as_svg'):
         text = text_fname_or_drawing.as_svg()
     elif os.path.exists(text_fname_or_drawing):
         fname = text_fname_or_drawing

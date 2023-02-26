@@ -52,15 +52,15 @@ Using [homebrew](https://brew.sh/):
 brew cask install inkscape
 ```
 
-### drawSvg and Cairo (optional)
+### Drawsvg and Cairo (optional)
 
-[drawSvg](https://github.com/cduck/drawSvg/) and [Cairo](https://www.cairographics.org/download/) are used for some SVG conversion functions.
+[drawsvg](https://github.com/cduck/drawsvg/) and [Cairo](https://www.cairographics.org/download/) are used for some SVG conversion functions.
 
 **Ubuntu**
 
 ```bash
 sudo apt-get install libcairo2
-python3 -m pip install drawSvg
+python3 -m pip install "drawsvg[raster]~=2.0"
 ```
 
 **macOS**
@@ -69,7 +69,7 @@ Using [homebrew](https://brew.sh/):
 
 ```bash
 brew install cairo
-python3 -m pip install drawSvg
+python3 -m pip install "drawsvg[raster]~=2.0"
 ```
 
 
@@ -97,7 +97,7 @@ pdf = latextools.render_snippet(r'''
 )
 pdf.save('table.pdf')
 pdf.rasterize('table.png', scale=2)
-pdf.as_svg().as_drawing(scale=2).saveSvg('table.svg')
+pdf.as_svg().as_drawing(scale=2).save_svg('table.svg')
 pdf  # Show preview if this is in a Jupyter notebook
 ```
 ![Example table output](https://raw.githubusercontent.com/cduck/latextools/master/examples/table.png)
@@ -115,7 +115,7 @@ pdf = latextools.render_qcircuit(r'''
 ''')
 pdf.save('qcircuit.pdf')
 pdf.rasterize('qcircuit.png', scale=2)
-pdf.as_svg().as_drawing(scale=2).saveSvg('qcircuit.svg')
+pdf.as_svg().as_drawing(scale=2).save_svg('qcircuit.svg')
 pdf  # Show preview if this is in a Jupyter notebook
 ```
 
@@ -125,7 +125,7 @@ pdf  # Show preview if this is in a Jupyter notebook
 
 ```python
 import latextools
-import drawSvg as draw  # pip3 install drawSvg
+import drawsvg as draw  # pip3 install drawsvg
 
 # Render latex
 latex_eq = latextools.render_snippet(
@@ -134,16 +134,16 @@ latex_eq = latextools.render_snippet(
 svg_eq = latex_eq.as_svg()
 
 # Use the rendered latex in a vector drawing
-d = draw.Drawing(100, 100, origin='center', displayInline=False)
+d = draw.Drawing(100, 100, origin='center')
 d.append(draw.Circle(0, 0, 49, fill='yellow', stroke='black', stroke_width=2))
 d.draw(svg_eq, x=0, y=0, center=True, scale=2.5)
 
-d.saveSvg('vector.svg')
-d.savePng('vector.png')
+d.save_svg('vector.svg')
+d.save_png('vector.png')
 
 # Display in Jupyter notebook
 #d.rasterize()  # Display as PNG
-d  # Display as SVG
+d.display_inline()  # Display as SVG
 ```
 
 ![Example SVG output](https://raw.githubusercontent.com/cduck/latextools/master/examples/vector.png)
@@ -152,12 +152,12 @@ d  # Display as SVG
 
 ```python
 import latextools
-import drawSvg as draw  # pip3 install drawSvg
+import drawsvg as draw  # pip3 install drawsvg
 
 # Create an SVG drawing with latex-formatted text
-d = draw.Drawing(100, 100, origin='center', displayInline=False)
+d = draw.Drawing(100, 100, origin='center')
 d.append(draw.Circle(0, 0, 49, fill='yellow', stroke='black', stroke_width=2))
-d.append(draw.Text(r'\Huge$\sqrt{X^\dag}$', 30, 0, -14, center=True))
+d.append(draw.Text(r'\Huge$\sqrt{X^\dag}$', 30, 0, 14, center=True))
 
 # Render entire drawing as latex
 pdf = latextools.render_svg(d)

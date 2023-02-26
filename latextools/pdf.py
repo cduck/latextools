@@ -22,13 +22,13 @@ class Pdf:
         from .convert import pdf_to_svg
         return pdf_to_svg(self)
 
-    def toDrawables(self, elements, **kwargs):
-        '''Integration with drawSvg.
+    def to_drawables(self, **kwargs):
+        '''Integration with drawsvg.
 
-        Forwards its arguments to `latextools.convert.Svg.toDrawables`.
+        Forwards its arguments to `latextools.convert.Svg.to_drawables`.
         '''
         svg = self.as_svg()
-        return svg.toDrawables(elements, **kwargs)
+        return svg.to_drawables(**kwargs)
 
     def _repr_html_(self):
         if self.data is None and self.fname is None:

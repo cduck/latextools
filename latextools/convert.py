@@ -44,7 +44,7 @@ def svg_to_pdf(fname_or_drawing=None, text=None, data=None, file=None,
         if isinstance(fname_or_drawing, (str, bytes, Path)):
             fname = fname_or_drawing
         else:
-            text = fname_or_drawing.asSvg()
+            text = fname_or_drawing.as_svg()
 
     proj = LatexProject()
     proj.add_file('image.svg', text=text, data=data, file=file, fname=fname)
@@ -138,24 +138,24 @@ class Svg:
             f.write(self.content)
 
     def rasterize(self, to_file=None, scale=1):
-        '''Requires the drawSvg Python package and cairo.'''
-        import drawSvg as draw
+        '''Requires the drawsvg Python package and cairo.'''
+        import drawsvg as draw
         if scale != 1:
             return self.as_drawing(scale=scale).rasterize(to_file)
         else:
             if to_file:
-                return draw.Raster.fromSvgToFile(self.content, to_file)
+                return draw.Raster.from_svg_to_file(self.content, to_file)
             else:
-                return draw.Raster.fromSvg(self.content)
+                return draw.Raster.from_svg(self.content)
 
     def as_drawing(self, scale=1):
-        '''Requires the drawSvg Python package and cairo.'''
-        import drawSvg as draw
+        '''Requires the drawsvg Python package and cairo.'''
+        import drawsvg as draw
         d = draw.Drawing(self.width*scale, self.height*scale)
         d.draw(self, x=0, y=0, scale=scale)
         return d
 
-    def asDataUri(self, strip_chars=STRIP_CHARS):
+    def as_data_uri(self, strip_chars=STRIP_CHARS):
         '''Returns a data URI with base64 encoding.'''
         data = self.content
         search = re.compile('|'.join(strip_chars))
@@ -163,7 +163,7 @@ class Svg:
         b64 = base64.b64encode(data_safe.encode())
         return 'data:image/svg+xml;base64,' + b64.decode(encoding='ascii')
 
-    def asUtf8DataUri(self, unsafe_chars='"', strip_chars=STRIP_CHARS):
+    def as_utf8_data_uri(self, unsafe_chars='"', strip_chars=STRIP_CHARS):
         '''Returns a data URI without base64 encoding.
 
         The characters '#&%' are always escaped.  '#' and '&' break parsing of
@@ -185,8 +185,9 @@ class Svg:
         data_safe = search.sub(lambda m: replacements[m.group(0)], data)
         return 'data:image/svg+xml;utf8,' + data_safe
 
-    def toDrawables(self, elements, x=0, y=0, center=False, scale=1,
+    def to_drawables(self, x=0, y=0, center=False, scale=1,
                     text_anchor=None, **kwargs):
+        import drawsvg as draw
         scale = scale*4/3  # Points to pixels
         w_str = next(re.finditer(r'width="([0-9]+(.[0-9]+)?)', self.content)
                     ).group(1)
@@ -195,9 +196,9 @@ class Svg:
         w, h = float(w_str), float(h_str)
         x_off, y_off = 0, 0
         if center:
-            x_off, y_off = -w/2, h/2
+            x_off, y_off = -w/2, -h/2
         else:
-            x_off, y_off = 0, h
+            x_off, y_off = 0, 0
         if text_anchor == 'start':
             x_off = 0
         elif text_anchor == 'middle':
@@ -216,20 +217,21 @@ class Svg:
         elems_str = next(re.finditer(r'</defs>(.*)</svg>', content,
                                      re.MULTILINE | re.DOTALL)
                         ).group(1)
-        defs = elements.Raw(defs_str)
+        defs = draw.Raw(defs_str)
 
         transforms = []
         if 'transform' in kwargs:
             transforms.append(kwargs['transform'])
         if x or y:
-            transforms.append(f'translate({x}, {-y})')
+            transforms.append(f'translate({x}, {y})')
         transforms.append(f'scale({scale})')
         if x_off or y_off:
-            transforms.append(f'translate({x_off}, {-y_off})')
+            transforms.append(f'translate({x_off}, {y_off})')
         kwargs['transform'] = ' '.join(transforms)
 
-        elems = elements.Raw(elems_str, (defs,), **kwargs)
-        return (elems,)
+        elems = draw.Raw(elems_str, (defs,))
+        wrap = draw.Group([elems], **kwargs)
+        return (wrap,)
 
 
 def pdf_to_svg(fname_or_obj=None, text=None, data=None, file=None,
