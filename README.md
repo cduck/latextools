@@ -11,7 +11,7 @@ Output objects integrate with Jupyter and display inline after a code cell allow
 latextools is available on PyPI:
 
 ```bash
-python3 -m pip install latextools
+python3 -m pip install "latextools[all]"
 ```
 
 ## Prerequisites
